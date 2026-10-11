@@ -694,6 +694,9 @@ p { margin: 0 0 1em; }
 .success-account p { margin: 0 0 14px; color: var(--ink-2); }
 .success-account strong { color: var(--ink); }
 
+/* for forgot password */
+.reset-title { font: 800 1.6rem/1.1 var(--display); margin: 0 0 12px; letter-spacing: -0.02em; }
+
 /* keyframes */
 @keyframes cell-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes word-in { to { opacity: 1; transform: none; filter: blur(0); } }

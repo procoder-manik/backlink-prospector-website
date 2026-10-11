@@ -25,16 +25,29 @@ async function send(url, method, body) {
 /* ---------- signed out: sign in or create an account ---------- */
 
 function AuthCard({ onDone }) {
-  const [mode, setMode] = useState("signin");
+  const [mode, setMode] = useState("signin"); // signin | register | forgot
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const switchTo = (m) => { setMode(m); setErrors({}); setMessage(""); setNotice(""); };
+
   async function submit(e) {
     e.preventDefault();
-    setBusy(true); setErrors({}); setMessage("");
+    setBusy(true); setErrors({}); setMessage(""); setNotice("");
+
+    if (mode === "forgot") {
+      const { ok, data } = await send("/api/account/forgot", "POST", { email: form.email })
+        .catch(() => ({ ok: false, data: { error: "No connection. Check your internet and try again." } }));
+      setBusy(false);
+      if (ok) setNotice(data.message);
+      else { setErrors(data.fields || {}); setMessage(data.error || "Something went wrong. Try again."); }
+      return;
+    }
+
     const { ok, data } = await send(mode === "signin" ? "/api/account/login" : "/api/account/register", "POST", form)
       .catch(() => ({ ok: false, data: { error: "No connection. Check your internet and try again." } }));
     setBusy(false);
@@ -43,7 +56,29 @@ function AuthCard({ onDone }) {
     setMessage(data.error || "Something went wrong. Try again.");
   }
 
-  const switchTo = (m) => { setMode(m); setErrors({}); setMessage(""); };
+  if (mode === "forgot") {
+    return (
+      <div className="auth-card">
+        <h2 className="reset-title">Reset your password</h2>
+        <p className="auth-foot" style={{ marginTop: 0, marginBottom: 20 }}>
+          Enter the email you order with. We send a link that works for 30 minutes.
+        </p>
+        <form className="auth-form" onSubmit={submit} noValidate>
+          <Field label="Email" error={errors.email}>
+            <input type="email" value={form.email} onChange={set("email")} autoComplete="email" required autoFocus />
+          </Field>
+          {notice && <p className="account-note" role="status">{notice}</p>}
+          {message && <p className="form-message" role="alert">{message}</p>}
+          <button className="btn btn-glow" type="submit" disabled={busy}>
+            {busy ? "Sending..." : "Send reset link"}
+          </button>
+        </form>
+        <p className="auth-foot">
+          <button type="button" className="link-btn" onClick={() => switchTo("signin")}>Back to sign in</button>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-card">
@@ -73,8 +108,7 @@ function AuthCard({ onDone }) {
 
       {mode === "signin" ? (
         <p className="auth-foot">
-          Forgot your password? Message us on <a href={SITE.whatsappLink} target="_blank" rel="noopener">WhatsApp</a> or{" "}
-          <a href={`mailto:${SITE.email}?subject=${encodeURIComponent("Password reset for Backlink Prospector")}`}>email</a> with your order number and we send you a new one.
+          <button type="button" className="link-btn" onClick={() => switchTo("forgot")}>Forgot password?</button>
         </p>
       ) : (
         <p className="auth-foot">Ordered before? Create the account with the same email, then add the order with its order number.</p>
@@ -82,7 +116,6 @@ function AuthCard({ onDone }) {
     </div>
   );
 }
-
 /* ---------- one order ---------- */
 
 const STEPS = [
